@@ -20,7 +20,7 @@ app.get('/api/fact', async (req, res) => {
       topP: 0.3,
       topK: 32,
     };
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro-latest', generationConfig }, {apiVersion: 'v1beta'});
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.0-pro-latest', generationConfig }, {apiVersion: 'v1beta'});
 
     let factObject;
     let isNewFact = false;
