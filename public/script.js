@@ -1,13 +1,14 @@
 const factElement = document.getElementById('fact');
 const trueButton = document.getElementById('trueButton');
 const falseButton = document.getElementById('falseButton');
-const resultElement = document.getElementById('result');
-const explanationElement = document.getElementById('explanation');
+const resultElement = document.getElementById('gameResult');
 const correctCountElement = document.getElementById('correctCount');
 const incorrectCountElement = document.getElementById('incorrectCount');
 const livesCountElement = document.getElementById('livesCount');
-const resultPopup = document.getElementById('resultPopup');
-const gameOverPopup = document.getElementById('gameOverPopup');
+const gameOverMessage = document.getElementById('gameOverMessage');
+const newFactButton = document.createElement('button'); // Creating a new button for fetching new fact.
+const panelElement = document.querySelector('.panel');  // To replace content on game over
+
 
 let currentFact = '';
 let currentFactIsTrue = false;
@@ -17,6 +18,14 @@ let incorrectCount = 0;
 let lives = 3;
 
 async function fetchFact() {
+  trueButton.disabled = false;
+  falseButton.disabled = false;
+  trueButton.style.display = ''; // Show the True and False buttons
+  falseButton.style.display = '';
+
+  factElement.innerText = '';
+  resultElement.innerHTML = '';
+
   try {
     const response = await fetch('/api/fact');
     const data = await response.json();
@@ -24,35 +33,49 @@ async function fetchFact() {
     currentFactIsTrue = data.isTrue;
     currentFactExplanation = data.explain;
     factElement.innerText = currentFact;
+    resultElement.innerHTML = ''; // Clear the result element until a new answer is submitted
   } catch (error) {
     console.error('Error fetching fact:', error);
   }
 }
 
 function checkAnswer(answer) {
+  let correctness = currentFactIsTrue ? 'True' : 'False';
   let resultText = '';
   if (answer === currentFactIsTrue) {
-    resultText = '<p class="text-4xl text-green-500 font-bold">Correct answer!</p>';
+    resultText = `<p class="text-2xl text-green-500 font-bold">Correct! The statement is ${correctness}.</p><p>&nbsp;</p>`;
     correctCount++;
-    correctCountElement.innerText = correctCount;
   } else {
-    resultText = '<p class="text-4xl text-red-500 font-bold">Wrong answer.</p>';
     incorrectCount++;
-    incorrectCountElement.innerText = incorrectCount;
     lives--;
-    livesCountElement.innerText = lives;
+
     if (lives === 0) {
-      document.getElementById('finalCorrectCount').innerText = correctCount;
-      document.getElementById('finalIncorrectCount').innerText = incorrectCount;
-      gameOverPopup.classList.add('show');
-      trueButton.disabled = true;
-      falseButton.disabled = true;
+      panelElement.innerHTML = `
+        <div class="game-over-container">
+          <h2>Game Over!</h2>
+          <p>Your final score:</p>
+          <p><strong>${correctCount} Correct</strong> | <strong>${incorrectCount} Incorrect</strong></p>
+          <a href="#" onclick="shareToTwitter()" class="share-button">Share to Twitter</a>
+        </div>`;
+      return;
+    } else {
+      resultText = `<p class="text-2xl text-red-500 font-bold">Incorrect! The statement is ${correctness}.</p><p>&nbsp;</p>`;
     }
   }
-  resultElement.innerHTML = resultText;
-  explanationElement.innerText = currentFactExplanation;
-  resultPopup.classList.add('show');
-  fetchFact();
+
+  // Append both result text and explanation
+  resultElement.innerHTML = resultText + `<p>${currentFactExplanation}</p>`;
+  correctCountElement.innerText = correctCount;
+  incorrectCountElement.innerText = incorrectCount;
+  livesCountElement.innerText = lives;
+  trueButton.style.display = 'none';
+  falseButton.style.display = 'none';
+
+  // Show new fact button
+  newFactButton.innerText = 'New Fact';
+  newFactButton.classList.add('bg-blue-500', 'hover:bg-blue-600', 'text-white', 'text-lg', 'px-6', 'py-2', 'rounded-lg', 'mt-8', 'w-full', 'transition', 'duration-200');
+  newFactButton.onclick = fetchFact;
+  resultElement.appendChild(newFactButton);
 }
 
 trueButton.addEventListener('click', () => {
@@ -63,15 +86,12 @@ falseButton.addEventListener('click', () => {
   checkAnswer(false);
 });
 
-document.getElementById('newFact').addEventListener('click', () => {
-  resultPopup.classList.remove('show');
-});
+function shareToTwitter() {
+  const tweet = `I scored ${correctCount} correct and ${incorrectCount} incorrect in the True or False game!`;
+  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`;
+  window.open(url, '_blank');
+}
 
-document.getElementById('shareButton').addEventListener('click', () => {
-  const shareText = `I scored ${correctCount} correct and ${incorrectCount} incorrect in the True or False game!`;
-  // Replace this alert with the actual sharing logic for your chosen social network
-  alert(`Sharing: ${shareText}`);
-});
 
 document.getElementById('newGameButton').addEventListener('click', () => {
   correctCount = 0;
@@ -80,10 +100,8 @@ document.getElementById('newGameButton').addEventListener('click', () => {
   correctCountElement.innerText = correctCount;
   incorrectCountElement.innerText = incorrectCount;
   livesCountElement.innerText = lives;
-  gameOverPopup.classList.remove('show');
-  trueButton.disabled = false;
-  falseButton.disabled = false;
-  fetchFact();
+  gameOverMessage.classList.add('hidden');
+  fetchFact(); // Start a new game immediately
 });
 
-fetchFact();
+fetchFact(); // Initial fetch
